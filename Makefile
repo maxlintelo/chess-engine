@@ -1,33 +1,39 @@
+VERISON_MAJOR := 0
+VERISON_MINOR := 1
+VERISON_PATCH := 0
+GIT_HASH := $(shell git rev-parse --short HEAD)
+
 CC := gcc
 SRCDIR := src
 BUILDDIR := build
-TARGET := bin/chess
+TARGETDIR := bin
+TARGET := $(TARGETDIR)/chess
 SRCEXT := c
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 CFLAGS := 
 LIB := -L lib
 INC := -I include
+REV_FILE := include/version.h
 
+PHONY := all
+all: $(TARGET)
+
+# Linking
 $(TARGET): $(OBJECTS)
-	@echo " Linking..."
-	@echo " $(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET) $(LIB) -O3
+	mkdir -p $(TARGETDIR)
+	$(CC) $^ -o $(TARGET) $(LIB) -O3
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
-	@echo " Building..."
-	@mkdir -p $(BUILDDIR)
-	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $< -save-temps -O3
+# Building
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT) $(REV_FILE)
+	mkdir -p $(BUILDDIR)
+	$(CC) $(CFLAGS) $(INC) -c -o $@ $< -save-temps -O3
 
+$(REV_FILE): Makefile
+	./make_rev.pl $(VERISON_MAJOR) $(VERISON_MINOR) $(VERISON_PATCH) $(GIT_HASH)
+
+PHONY += clean
 clean:
-	@echo " Cleaning..."; 
-	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
+	$(RM) -r $(BUILDDIR) $(TARGETDIR) $(REV_FILE)
 
-# Tests
-tester:
-	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
-
-# Spikes
-ticket:
-	$(CC) $(CFLAGS) spikes/ticket.cpp $(INC) $(LIB) -o bin/ticket
-
-.PHONY: clean
+.PHONY: $(PHONY)
